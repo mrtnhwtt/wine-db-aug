@@ -17,16 +17,22 @@ def parse_json():
         wine.pop('taster_twitter_handle')
         wine.pop('points')
         wine.pop('region_2')
-        wine['img'] = get_vivino_img(wine["title"])
+        wine['poster'] = 'https://butler-academy.com/wp-content/uploads/2019/03/vin2.png'
+        vivino = get_vivino_info(wine["title"])
+        if vivino:
+            wine['price'] = vivino['price']
+            wine['poster'] = vivino['img']
     with open('vin_db.json', 'w', encoding='utf8') as f:
         f.write(json.dumps(content, ensure_ascii=False))
     spinner.text='Done.'
     spinner.succeed()
 
-def get_vivino_img(name):
+def get_vivino_info(name):
     subprocess.check_output(['node', 'vivino.js', '--name="' + name + '"'])
     with open('vivino-out.json', 'r') as f:
         content = json.loads(f.read())
-        return content['vinos'][0]['thumb']
-
+        try:
+            return {'img': content['vinos'][0]['thumb'], 'price': content['vinos'][0]['price']}
+        except:
+            return None
 parse_json()
