@@ -1,12 +1,26 @@
 import json
 import uuid
-import subprocess
 from halo import Halo
+from bs4 import BeautifulSoup
+import urllib.request
+
+def get_image_from_name(name):
+    try:
+        url = f'https://www.vivino.com/search/wines?q={urllib.parse.quote(name)}'
+        with urllib.request.urlopen(url) as webPageResponse:
+            outputHtml = webPageResponse.read()
+        getpage_soup= BeautifulSoup(outputHtml, 'html.parser')
+        all_class_topsection= getpage_soup.findAll('figure', {'class':'wine-card__image'})
+        style = str(all_class_topsection[0]['style'])
+        img = style.replace('background-image: url(', 'https:')[:-1]
+        return img
+    except:
+        return None
 
 spinner = Halo(text='', spinner='dots')
 def parse_json():
     spinner.start()
-    filename='test.json'
+    filename='winemag.json'
     content = ''
     with open(filename, 'r') as f:
         content = json.loads(f.read())
@@ -18,21 +32,12 @@ def parse_json():
         wine.pop('points')
         wine.pop('region_2')
         wine['poster'] = 'https://butler-academy.com/wp-content/uploads/2019/03/vin2.png'
-        vivino = get_vivino_info(wine["title"])
+        vivino = get_image_from_name(wine["title"])
         if vivino:
-            wine['price'] = vivino['price']
-            wine['poster'] = vivino['img']
+            wine['poster'] = vivino
     with open('vin_db.json', 'w', encoding='utf8') as f:
         f.write(json.dumps(content, ensure_ascii=False))
     spinner.text='Done.'
     spinner.succeed()
 
-def get_vivino_info(name):
-    subprocess.check_output(['node', 'vivino.js', '--name="' + name + '"'])
-    with open('vivino-out.json', 'r') as f:
-        content = json.loads(f.read())
-        try:
-            return {'img': content['vinos'][0]['thumb'], 'price': content['vinos'][0]['price']}
-        except:
-            return None
 parse_json()
